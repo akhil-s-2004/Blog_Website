@@ -58,7 +58,7 @@ app.post('/', async (req, res) => {
 //get all blog posts
 app.get('/', async (req, res) => {
     try {
-        const blogs = await Blog.find()
+        const blogs = await Blog.find().sort({date: -1}) // Sort by date in descending order
         res.status(200).json(blogs)
     } catch (error) {
         console.error('Error fetching blog posts:', error);
