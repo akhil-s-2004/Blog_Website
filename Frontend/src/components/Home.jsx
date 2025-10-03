@@ -1,36 +1,30 @@
-import React from 'react'
-import bgImage from '../../images/bg_home.jpg' // adjust based on your actual filename
+import React, { useEffect, useState } from 'react'
+import axios from '../api'
+import BlogCard from './BlogCard'
 
 const Home = () => {
+  const [blogs, setBlogs] = useState([])
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      const res = await axios.get('/blogs')
+      setBlogs(res.data.slice(0, 4)) // Show latest 4 blogs
+    }
+    fetchBlogs()
+  }, [])
+
   return (
-    <div
-      className="relative min-h-screen flex items-center justify-center text-center px-4 py-10"
-    >
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center opacity-60"
-        style={{
-          backgroundImage: `url(${bgImage})`,
-        }}
-      ></div>
+    <div className='min-h-screen px-6 py-12 bg-gray-50'>
+      <h1 className='text-5xl font-bold text-center mb-8 text-gray-800'>Welcome to BlogEasy</h1>
+      <p className='text-center text-gray-600 mb-12'>
+        Explore the latest reviews and stories in Books, Anime, and Shows!
+      </p>
 
-      {/* Overlay Content */}
-      <div className="relative z-10">
-        <h1 className="text-4xl md:text-5xl font-bold text-green-800 mb-4 drop-shadow-lg">
-          Welcome to BlogEasy
-        </h1>
-
-        <h2 className="text-xl md:text-2xl text-green-900 font-semibold mb-2 drop-shadow">
-          Read. Write. Inspire.
-        </h2>
-
-        <p className="text-green-900 max-w-xl text-md drop-shadow">
-          Dive into a world of thoughts and stories. Create your own blog or explore what others have to share!
-        </p>
+      <div className='grid md:grid-cols-2 lg:grid-cols-4 gap-6'>
+        {blogs.map(blog => <BlogCard key={blog._id} blog={blog} />)}
       </div>
     </div>
   )
 }
 
 export default Home
-
