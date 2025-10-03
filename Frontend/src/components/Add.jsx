@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
 import axios from 'axios'
 
-const AddBlog = () => {
+const Add = () => {
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
   const [content, setContent] = useState('')
+  const [category, setCategory] = useState('Books') // default category
+  const [excerpt, setExcerpt] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState(null)
 
@@ -13,19 +15,21 @@ const AddBlog = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!title || !author || !content) {
-      setError('All fields are required.')
+    if (!title || !author || !content || !category) {
+      setError('Title, Author, Content, and Category are required.')
       setMessage('')
       return
     }
 
     try {
-      const response = await axios.post(baseUrl, { title, author, content })
+      const response = await axios.post(`${baseUrl}/blogs`, { title, author, content, category, excerpt })
       console.log('Blog added:', response.data)
       setMessage('Blog successfully added!')
       setTitle('')
       setAuthor('')
       setContent('')
+      setCategory('Books')
+      setExcerpt('')
       setError(null)
     } catch (err) {
       console.error(err)
@@ -50,11 +54,7 @@ const AddBlog = () => {
           <input
             type="text"
             value={title}
-            onChange={(e) => {
-              setTitle(e.target.value)
-              setError(null)
-              setMessage('')
-            }}
+            onChange={(e) => { setTitle(e.target.value); setError(null); setMessage('') }}
             placeholder="Enter blog title"
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
@@ -65,12 +65,32 @@ const AddBlog = () => {
           <input
             type="text"
             value={author}
-            onChange={(e) => {
-              setAuthor(e.target.value)
-              setError(null)
-              setMessage('')
-            }}
+            onChange={(e) => { setAuthor(e.target.value); setError(null); setMessage('') }}
             placeholder="Enter author name"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1 text-gray-700">Category</label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="Books">Books</option>
+            <option value="Anime">Anime</option>
+            <option value="Shows">Shows</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1 text-gray-700">Excerpt (Optional)</label>
+          <input
+            type="text"
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+            placeholder="Short preview of the blog"
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
@@ -79,11 +99,7 @@ const AddBlog = () => {
           <label className="block text-sm font-medium mb-1 text-gray-700">Content</label>
           <textarea
             value={content}
-            onChange={(e) => {
-              setContent(e.target.value)
-              setError(null)
-              setMessage('')
-            }}
+            onChange={(e) => { setContent(e.target.value); setError(null); setMessage('') }}
             placeholder="Enter blog content"
             rows="5"
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
@@ -101,4 +117,4 @@ const AddBlog = () => {
   )
 }
 
-export default AddBlog
+export default Add

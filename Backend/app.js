@@ -1,106 +1,110 @@
-const express = require('express')
-const mongoose = require('mongoose')
-const Blog=require('./models/blogs')
-const cors = require('cors')
-const app = express()
-const port = 3000
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+require('dotenv').config();
 
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Middleware
 app.use(cors());
-app.use(express.json())
-require('dotenv').config()
-const uri = process.env.MONGODB_URI
-console.log(uri)
+app.use(express.json());
 
+// MongoDB connection
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log('Connected to DB'))
+    .catch(err => {
+        console.error('Error connecting to DB', err);
+        process.exit(1);
+    });
 
-main()
-.then(()=>{
-    console.log('Connected to DB')
-    app.listen(port, () => {
-        console.log(`Example app listening on port ${port}`)
-    })
-})
+// Blog Schema
+const blogSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    author: { type: String, required: true },
+    content: { type: String, required: true },
+    category: { type: String, enum: ['Books', 'Anime', 'Shows'], required: true },
+    excerpt: { type: String }, // Optional short preview
+    date: { type: Date, default: Date.now }
+});
 
-.catch((err)=>{
-    console.log('Error connecting to DB',err);
-    process.exit(1);
-    })
+const Blog = mongoose.model('Blog', blogSchema);
 
-async function main() {
-  await mongoose.connect(process.env.MONGODB_URL);
-}
-// app.get('/', (req, res) =>
-//     res.send('Hello World! This is the backend server for the blog application.'))
+// ------------------- Routes -------------------
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+// Create a blog post
+app.post('/blogs', async (req, res) => {
+    try {
+        const { title, author, content, category, excerpt } = req.body;
 
-//add a blog post
-app.post('/', async (req, res) => {
-    try{
-        if(!req.body){
-            return res.status(400).json({error:"No data provided"})
+        // Validation
+        if (!title || !author || !content || !category) {
+            return res.status(400).json({ error: "Title, author, content, and category are required" });
         }
-        const {title, author, content} = req.body
-        const blog = new Blog({
-            title,
-            author,
-            content
-        })
-        await blog.save()
-        const blogs = await Blog.find()
-        res.status(201).json({message: "Blog post created successfully", blogs})
+
+        const blog = new Blog({ title, author, content, category, excerpt });
+        await blog.save();
+
+        res.status(201).json({ message: "Blog post created successfully", blog });
     } catch (error) {
         console.error('Error creating blog post:', error);
+        res.status(500).json({ error: "Internal server error" });
     }
-})
+});
 
-//get all blog posts
-app.get('/', async (req, res) => {
+// Get all blog posts (with optional category or search filter)
+app.get('/blogs', async (req, res) => {
     try {
-        const blogs = await Blog.find().sort({date: -1}) // Sort by date in descending order
-        res.status(200).json(blogs)
+        const { category, search } = req.query;
+        let filter = {};
+
+        if (category) filter.category = category;
+        if (search) filter.title = { $regex: search, $options: 'i' };
+
+        const blogs = await Blog.find(filter).sort({ date: -1 }); // newest first
+        res.status(200).json(blogs);
     } catch (error) {
         console.error('Error fetching blog posts:', error);
-        res.status(500).json({error: "Internal server error"})
+        res.status(500).json({ error: "Internal server error" });
     }
-})
+});
 
-//update a blog post
-app.patch('/:id', async (req, res) => {
+// Update a blog post
+app.patch('/blogs/:id', async (req, res) => {
     try {
-        const blogId= req.params.id
-        if (!blogId) {
-            return res.status(400).json({error: "Blog ID is required"})
+        const blogId = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(blogId)) {
+            return res.status(400).json({ error: "Invalid blog ID" });
         }
-        if (!req.body) {
-            return res.status(400).json({error: "No data provided"})
-        }
-        if(!mongoose.Types.ObjectId.isValid(blogId)){
-            return res.status(400).json({error: "Invalid blog ID"})
-        }
-        const blog = await Blog.findByIdAndUpdate(blogId, req.body, {new: true})
-        res.status(200).json({message: "Blog post updated successfully", blog})
+
+        const updatedBlog = await Blog.findByIdAndUpdate(blogId, req.body, { new: true });
+        res.status(200).json({ message: "Blog post updated successfully", blog: updatedBlog });
     } catch (error) {
         console.error('Error updating blog post:', error);
-        res.status(500).json({error: "Internal server error"})
+        res.status(500).json({ error: "Internal server error" });
     }
-})
+});
 
-//delete a blog post
-app.delete('/:id', async (req, res) => {
+// Delete a blog post
+app.delete('/blogs/:id', async (req, res) => {
     try {
-        const blogId = req.params.id
-        if (!blogId) {
-            return res.status(400).json({error: "Blog ID is required"})
+        const blogId = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(blogId)) {
+            return res.status(400).json({ error: "Invalid blog ID" });
         }
-        if(!mongoose.Types.ObjectId.isValid(blogId)){
-            return res.status(400).json({error: "Invalid blog ID"})
-        }
-        await Blog.findByIdAndDelete(blogId)
-        res.status(200).json({message: "Blog post deleted successfully"})
+
+        await Blog.findByIdAndDelete(blogId);
+        res.status(200).json({ message: "Blog post deleted successfully" });
     } catch (error) {
         console.error('Error deleting blog post:', error);
-        res.status(500).json({error: "Internal server error"})
+        res.status(500).json({ error: "Internal server error" });
     }
-})
+});
+
+// ------------------------------------------------
+
+app.listen(port, () => {
+    console.log(`Blog backend running on port ${port}`);
+});
